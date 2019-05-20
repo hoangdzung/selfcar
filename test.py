@@ -160,6 +160,10 @@ class Car(pygame.sprite.Sprite):
             (self.front_left[0]+self.front_right[0]) // 2,
             (self.front_left[1]+self.front_right[1]) // 2,
         ]
+        self.meanUpperMid = [
+            (self.upperMid[0] + self.rect.center[0])//2,
+            (self.upperMid[1] + self.rect.center[1])//2,
+        ]
 
 
     def rotateAroundCenter(self, angle):
@@ -240,7 +244,7 @@ class Car(pygame.sprite.Sprite):
         self.rect.center = (newCenterX, newCenterY)
 
     def compute_distance(self):
-        distances, impacts = distance_to_borders(self.front_left, self.front_right, self.back_left, self.back_right, self.rect.center, self.virtual_map.map)
+        distances, impacts = distance_to_borders(self.front_left, self.front_right, self.back_left, self.back_right, self.meanUpperMid, self.virtual_map.map)
         self.distanceL, self.distanceR, self.distanceBackL, self.distanceBackR, self.distanceL45, self.distanceR45 = distances
         self.impactL, self.impactR, self.impactBackL, self.impactBackR, self.impactL45, self.impactR45 = impacts
         self.distanceFL, self.distanceFR, self.impactFL, self.impactFR = distance_to_obstacles(self.front_left, 
