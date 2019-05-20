@@ -71,7 +71,7 @@ def rotate(origin, point, angle):
     return qx, qy
 
 class Car(pygame.sprite.Sprite):
-    def __init__(self, x, y, w, h, routes):
+    def __init__(self, x, y, w, h, routes=None):
         self.image = pygame.transform.scale(pygame.image.load("car.png"), (w,h))
         self.rect = self.image.get_rect()
         self.rect.left = x
@@ -88,6 +88,9 @@ class Car(pygame.sprite.Sprite):
         
         # self.center = [(self.front_left[0] + self.back_right[0])/2,(self.front_left[1] + self.back_right[1])/2]
     
+    def set_routes(self,routes):
+        self.routes=routes
+
     def rotate(self, angle=math.pi/4):
         # center = self.rect.center
         # self.front_left = rotate(center, self.front_left, angle)
@@ -184,7 +187,7 @@ def main():
     roads = [road1, road2, road3, road4, road5]
     # pygame.draw.rect(DISPLAY,BLUE,(200,150,100,50))
     
-    car = Car(25,225,20,10,roads)
+    car = Car(25,225,20,10)
     # car.draw(DISPLAY)
     routes  = []
     start = False
@@ -192,14 +195,16 @@ def main():
 
     car_pick=False
     # while True:
-        
+    #     DISPLAY.fill(WHITE)
+    #     for road in roads:
+    #         road.draw(DISPLAY)
     #     for event in pygame.event.get():
     #         if event.type==QUIT:
     #             pygame.quit()
     #             sys.exit()
     #         elif event.type == MOUSEBUTTONUP:
     #             mousex, mousey = event.pos
-    #             car = Car(mousex,mousey,20,10, roads)
+    #             car = Car(mousex,mousey,20,10)
     #             car.draw(DISPLAY)
     #             car_pick=True
     #     if car_pick:
@@ -223,25 +228,29 @@ def main():
                         road.clicked(DISPLAY)
                         routes.append(road)
             if event.type==pygame.KEYDOWN:
-                if event.key==pygame.K_KP_ENTER:
+                if event.key==pygame.K_RETURN:
+                    print("Enter")
                     start = True
+                    car.set_routes(routes)
                     virtual_map.drawRoutes(routes)
                     # done choosing routes
                     # update virtual map
         
-        i+=1
-        print(i)
-        if i%100==0:
-            for road in roads:
-                road.update()
-            car.sensor_redlight()
-            car.update()
-            print(car.redlight_distance, car.redlight_time)
 
-        DISPLAY.fill(WHITE)        
+        DISPLAY.fill(WHITE)
         for road in roads:
             road.draw(DISPLAY)
-        car.draw(DISPLAY)
+        i+=1
+        # print(i)
+        if start:
+            if i%100==0:
+                for road in roads:
+                    road.update()
+                car.sensor_redlight()
+                car.update()
+                print(car.redlight_distance, car.redlight_time)
+            car.draw(DISPLAY)
+            
         pygame.display.update()
 
 main()
