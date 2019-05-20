@@ -182,7 +182,7 @@ class Car(pygame.sprite.Sprite):
             display.blit(rotated_image, self.temp_center)
         else:
             display.blit(rotated_image, self.rect.center)
-        print(self.distanceL, self.distanceR)
+        # print(self.distanceL, self.distanceR)
         self.compute_pos_sensors()
         if self.distanceL is not None:
             pygame.draw.line(display, (255, 0, 0), self.front_left, self.impactL)
@@ -211,7 +211,8 @@ class Car(pygame.sprite.Sprite):
         return True
     
     def cal_steering_angle(self):
-        self.steering_controller.input['deviation'] = 100.0*self.distanceR /(self.distanceL+self.distanceR)
+        self.steering_controller.input['deviation_front'] = 100.0*self.distanceFR /(self.distanceFL+self.distanceFR)
+        self.steering_controller.input['deviation_back'] = 100.0*self.distanceR /(self.distanceL+self.distanceR)
         self.steering_controller.compute()
         # steering = math.radians(self.steering_controller.output['steering']-180)/900
         # print(steering)
@@ -237,28 +238,30 @@ class Car(pygame.sprite.Sprite):
                 continue
             if road.include(self.rect.left, self.rect.top):
                 return i
+        if self.road_idx +1 < len(self.routes):
+            return self.road_idx+1
         return -1
 
     @staticmethod 
     def find_common_vertex(road1, road2):
         common_vertex = [pts for pts in road1.points if pts in road2.points ]
-        print(len(common_vertex))
         return common_vertex
 
     def sensor_redlight(self):
         # TODO: check at the end of routes
         self.road_idx = self.find_location()
+        
         if self.road_idx == -1:
             raise "Out of map"
         if self.routes[self.road_idx].type == 'road': 
             common_vertex = self.find_common_vertex(self.routes[self.road_idx], self.routes[self.road_idx+1])
-            print(self.routes[self.road_idx].type, self.routes[self.road_idx+1].type)
+            # print(self.routes[self.road_idx].type, self.routes[self.road_idx+1].type)
             self.next_intersection = self.routes[self.road_idx+1]
         elif self.routes[self.road_idx].type == 'intersection':
             common_vertex = self.find_common_vertex(self.routes[self.road_idx+1], self.routes[self.road_idx+2])
-            print(self.routes[self.road_idx+1].type, self.routes[self.road_idx+2].type)
+            # print(self.routes[self.road_idx+1].type, self.routes[self.road_idx+2].type)
             self.next_intersection = self.routes[self.road_idx+2]
-
+        print(self.routes[self.road_idx].type, self.next_intersection.type)
         self.next_redlight_location = [(common_vertex[0][0]+common_vertex[1][0])/2, (common_vertex[0][1]+common_vertex[1][1])/2]
         self.redlight_distance = euclide_distance([self.rect.left, self.rect.top], self.next_redlight_location)
         self.redlight_time = self.next_intersection.count 
@@ -361,7 +364,7 @@ def main():
         updated = car.update(DISPLAY)
         if not updated:
             break
-        print(car.redlight_distance, car.redlight_time)
+        # print(car.redlight_distance, car.redlight_time)
         car.draw(DISPLAY)    
         pygame.display.update()
     print("Done")
