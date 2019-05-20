@@ -64,7 +64,9 @@ def rotate(origin, point, angle):
     return qx, qy
 
 class Car(pygame.sprite.Sprite):
-    def __init__(self, x, y, w, h):
+    def __init__(self, x, y, w, h, routes):
+        self.x = x
+        self.y = y
         self.front_left = [x+w/2,y+h/2]
         self.front_right = [x+w/2,y-h/2]
         self.back_left = [x-w/2,y+h/2]
@@ -72,7 +74,9 @@ class Car(pygame.sprite.Sprite):
         self.color = (0,0,0)
         self.image = pygame.transform.scale(pygame.image.load("car.png"), (w,h))
         self.center = [(self.front_left[0] + self.back_right[0])/2,(self.front_left[1] + self.back_right[1])/2]
-    
+        self.road_idx=0
+        self.routes = routes
+
     def rotate(self,angle=math.pi/4):
         
         center =self.center
@@ -87,11 +91,13 @@ class Car(pygame.sprite.Sprite):
         display.blit(self.image, self.center)
 
     def update(self, display):
-        self.rotate()
+        self.center[0]+=5
+        self.x, self.y = self.center
         self.draw(display)
+        display.blit(self.image, self.next_redlight_location)
     
     def find_location(self):
-        for i, road in self.routes:
+        for i, road in enumerate(self.routes):
             if i < self.road_idx:
                 continue
             if road.include(self.x, self.y):
@@ -107,14 +113,14 @@ class Car(pygame.sprite.Sprite):
         self.road_idx = self.find_location()
         if self.routes[self.road_idx].type == 'road': 
             common_vertex = self.find_common_vertex(self.routes[self.road_idx], self.routes[self.road_idx+1])
-            next_intersection = self.routes[self.road_idx+1]
+            self.next_intersection = self.routes[self.road_idx+1]
         elif self.routes[self.road_idx].type == 'intersection':
             common_vertex = self.find_common_vertex(self.routes[self.road_idx+1], self.routes[self.road_idx+2])
-            next_intersection = self.routes[self.road_idx+2]
+            self.next_intersection = self.routes[self.road_idx+2]
 
-        next_redlight_location = [(common_vertex[0][0]+common_vertex[1][0])/2, (common_vertex[0][1]+common_vertex[1][1])/2]
-        self.redlight_distance = eculid_distance([self.x, self.y], next_redlight_location)
-        self.redlight_time = next_intersection.time 
+        self.next_redlight_location = [(common_vertex[0][0]+common_vertex[1][0])/2, (common_vertex[0][1]+common_vertex[1][1])/2]
+        self.redlight_distance = eculid_distance([self.x, self.y], self.next_redlight_location)
+        self.redlight_time = self.next_intersection.count 
 
 
 def main():
@@ -141,6 +147,23 @@ def main():
     routes  = []
     start = False
     i=0
+
+    car_pick=False
+    while True:
+        
+        for event in pygame.event.get():
+            if event.type==QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == MOUSEBUTTONUP:
+                mousex, mousey = event.pos
+                car = Car(mousex,mousey,20,10, roads)
+                car.draw(DISPLAY)
+                car_pick=True
+        if car_pick:
+            break
+        pygame.display.update()
+
     while True:
         mouseClicked = False
         for event in pygame.event.get():
@@ -164,6 +187,9 @@ def main():
         if i%500==0:
             for road in roads:
                 road.update(DISPLAY)
+            car.sensor_redlight()
+            print(car.redlight_distance, car.redlight_time)
+            car.update(DISPLAY)
         pygame.display.update()
 
 main()
