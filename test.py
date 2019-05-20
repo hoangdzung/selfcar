@@ -12,6 +12,8 @@ from distance import distance_to_borders, distance_to_obstacles
 from virtual_map import Map 
 from controller import get_steering_controller
 
+import numpy as np 
+
 steering_controller = get_steering_controller()
 
 class Road():
@@ -102,13 +104,16 @@ class Car(pygame.sprite.Sprite):
         self.distanceBackR = None
 
         self.find_init_angle_sensor_with_center_pos()
+        self.rotate_true_angle()
         self.compute_pos_sensors()
         
 
         # self.center = [(self.front_left[0] + self.back_right[0])/2,(self.front_left[1] + self.back_right[1])/2]
-    def get_start_angle(self):
+    def rotate_true_angle(self):
         self.sensor_redlight()
-        # self. angle = 
+        right_vector = np.array(self.next_redlight_location) - np.array([self.rect.left, self.rect.top])
+        self.angle = - np.arccos(right_vector[0]/np.linalg.norm(right_vector)) 
+
     def set_routes(self,routes):
         self.routes=routes
 
