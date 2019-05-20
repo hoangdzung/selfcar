@@ -8,6 +8,7 @@ import random
 import math
 
 from utils import eculid_distance
+from virtual_map import Map 
 
 class Road():
     def __init__(self, pts1, pts2, pts3, pts4, type='road', time=None):
@@ -164,7 +165,10 @@ class Car(pygame.sprite.Sprite):
 
 def main():
     pygame.init()
-    
+    mapW = 1000
+    mapH = 1000
+    virtual_map = Map(mapW, mapH)
+
     DISPLAY=pygame.display.set_mode((500,400),0,32)
 
     WHITE=(255,255,255)
@@ -213,7 +217,7 @@ def main():
             elif event.type == MOUSEBUTTONUP:
                 mousex, mousey = event.pos
                 mouseClicked = True
-            if mouseClicked:
+            if mouseClicked and not start:
                 for road in roads:
                     if road.include(mousex, mousey):
                         road.clicked(DISPLAY)
@@ -221,6 +225,10 @@ def main():
             if event.type==pygame.KEYDOWN:
                 if event.key==pygame.K_KP_ENTER:
                     start = True
+                    virtual_map.drawRoutes(routes)
+                    # done choosing routes
+                    # update virtual map
+        
         i+=1
         print(i)
         if i%100==0:
