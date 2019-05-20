@@ -7,6 +7,8 @@ from shapely.geometry.polygon import Polygon
 import random
 import math
 
+from utils import eculid_distance
+
 class Road():
     def __init__(self, pts1, pts2, pts3, pts4):
         self.pts1 = pts1 
@@ -32,13 +34,14 @@ class Road():
     def include(self, x, y):
         return self.polygon.contains(Point(x,y))
 
-# class InterSect(Road):
-#     def __init__(self, pts1, pts2, pts3, pts4, time):
-#         super(InterSect).__init__(self, pts1, pts2, pts3, pts4)
-#         self.time = time 
-#         self.count = random.randint(self.time)
+class InterSect(Road):
+    def __init__(self, pts1, pts2, pts3, pts4, time):
+        super(InterSect).__init__(self, pts1, pts2, pts3, pts4)
+        self.time = time 
+        self.count = random.randint(self.time)
     
-#     def 
+    def update(self):
+        self.time = (self.time+1)%self.count
 
 def rotate(origin, point, angle):
     """
@@ -62,7 +65,7 @@ class Car(pygame.sprite.Sprite):
         self.color = (0,0,0)
         self.image = pygame.transform.scale(pygame.image.load("car.png"), (w,h))
         self.center = [(self.front_left[0] + self.back_right[0])/2,(self.front_left[1] + self.back_right[1])/2]
-
+    
     def rotate(self,angle=math.pi/4):
         
         center =self.center
@@ -79,6 +82,34 @@ class Car(pygame.sprite.Sprite):
     def update(self, display):
         self.rotate()
         self.draw(display)
+    
+    def find_location(self):
+        for i, road in self.routes:
+            if i < self.road_idx:
+                continue
+            if road.include(self.x, self.y):
+                return i
+        return -1
+
+    @staticmethod 
+    def find_common_vertex(road1, road2):
+        return [pts for road1.points if pts in road2.points]
+
+    def sensor_redlight(self):
+        # TODO: check at the end of routes
+        self.road_idx = self.find_location()
+        if self.routes[self.road_idx].type == 'road': ### Nếu đang ở đường thì đèn đỏ kế tiếp ngay trước măthj
+            common_vertex = self.find_common_vertex(self.routes[self.road_idx], self.routes[self.road_idx+1])
+            next_intersection = self.routes[self.road_idx+1]
+        elif self.routes[self.road_idx].type == 'intersection': ### Nếu đang ở ngã tư thì đèn đỏ ở ngã tư kế tiếp
+            common_vertex = self.find_common_vertex(self.routes[self.road_idx+1], self.routes[self.road_idx+2])
+            next_intersection = self.routes[self.road_idx+2]
+
+        next_redlight_location = [(common_vertex[0][0]+common_vertex[1][0])/2, (common_vertex[0][1]+common_vertex[1][1])/2]
+        self.redlight_distance = eculid_distance([self.x, self.y], next_redlight_location)
+        self.redlight_time = next_intersection.time 
+        
+
 def main():
     pygame.init()
 
