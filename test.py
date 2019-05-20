@@ -17,6 +17,8 @@ import numpy as np
 from obstacle import init_obstacle_from_pos
 steering_controller = get_steering_controller()
 
+ROAD_SCALE = 1.5
+
 class Road():
     def __init__(self, pts1, pts2, pts3, pts4, type='road', time=None):
         assert type in ["road", "intersection"]
@@ -26,9 +28,13 @@ class Road():
             self.count = random.randint(0, self.time)
             self.myfont = pygame.font.SysFont('Comic Sans MS', 30)
             self.textsurface = self.myfont.render(str(self.count), False, (0, 0, 0))
+        pts1 = [x * ROAD_SCALE for x in pts1]
+        pts2 = [x * ROAD_SCALE for x in pts2]
+        pts3 = [x * ROAD_SCALE for x in pts3]
+        pts4 = [x * ROAD_SCALE for x in pts4]
 
         self.type = type
-        self.pts1 = pts1 
+        self.pts1 = pts1
         self.pts2 = pts2
         self.pts3 = pts3
         self.pts4 = pts4
@@ -103,6 +109,8 @@ class Car(pygame.sprite.Sprite):
         self.distanceFR = None
         self.distanceBackL = None
         self.distanceBackR = None
+        self.distanceL45 = None 
+        self.distanceR45 = None 
 
         self.find_init_angle_sensor_with_center_pos()
         self.rotate_true_angle()
@@ -196,6 +204,10 @@ class Car(pygame.sprite.Sprite):
             pygame.draw.line(display, (255, 0, 0), self.front_left, self.impactFL)
         if self.distanceFR is not None:
             pygame.draw.line(display, (255, 0, 0), self.front_right, self.impactFR)
+        if self.distanceL45 is not None:
+            pygame.draw.line(display, (255, 0, 0), self.front_left, self.impactL45)
+        if self.distanceR45 is not None:
+            pygame.draw.line(display, (255, 0, 0), self.front_right, self.impactR45)
 
     def update(self, display):
         #
@@ -226,8 +238,9 @@ class Car(pygame.sprite.Sprite):
         self.rect.center = (newCenterX, newCenterY)
 
     def compute_distance(self):
-        self.distanceL, self.distanceR, self.distanceBackL, self.distanceBackR, self.impactL, self.impactR, self.impactBackL, self.impactBackR = distance_to_borders(self.front_left, 
-            self.front_right, self.back_left, self.back_right, self.virtual_map.map)
+        distances, impacts = distance_to_borders(self.front_left, self.front_right, self.back_left, self.back_right, self.rect.center, self.virtual_map.map)
+        self.distanceL, self.distanceR, self.distanceBackL, self.distanceBackR, self.distanceL45, self.distanceR45 = distances
+        self.impactL, self.impactR, self.impactBackL, self.impactBackR, self.impactL45, self.impactR45 = impacts
         self.distanceFL, self.distanceFR, self.impactFL, self.impactFR = distance_to_obstacles(self.front_left, 
             self.front_right, self.back_left, self.back_right, self.virtual_map.map)
     
@@ -268,11 +281,11 @@ def main():
 
     pygame.init()
     clock = pygame.time.Clock()
-    mapW = 1000
+    mapW = 2000
     mapH = 1000
     virtual_map = Map(mapW, mapH)
 
-    DISPLAY=pygame.display.set_mode((1000,1000),0,32)
+    DISPLAY=pygame.display.set_mode((mapW,mapH),0,32)
 
     WHITE=(255,255,255)
     BLUE=(0,0,255)
