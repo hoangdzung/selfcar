@@ -11,7 +11,7 @@ from utils import euclide_distance
 from distance import distance_to_borders, distance_to_obstacles
 from virtual_map import Map 
 from controller import get_steering_controller
-
+from obstacle import init_obstacle_from_pos
 steering_controller = get_steering_controller()
 
 class Road():
@@ -273,6 +273,9 @@ def main():
     routes  = []
     route_picked = False
 
+    # obstacles
+    obstacles = []
+
     while True:
         DISPLAY.fill(WHITE)
         for road in roads:
@@ -324,10 +327,21 @@ def main():
 
     while True:
         clock.tick(20)
+        for event in pygame.event.get():
+            if event.type == pygame.MOUSEBUTTONUP and event.button == 3:
+                pos = pygame.mouse.get_pos()
+                obstacle = init_obstacle_from_pos(pos)
+                obstacles.append(obstacle)
+                # update virtual map
+                virtual_map.drawObstacle([obstacle])
+
         DISPLAY.fill(WHITE)
         for road in roads:
             road.update()
             road.draw(DISPLAY)
+        for obstacle in obstacles:
+            obstacle.draw(DISPLAY)
+        
         car.sensor_redlight()
         car.update()
         print(car.redlight_distance, car.redlight_time)
