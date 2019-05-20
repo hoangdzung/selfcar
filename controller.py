@@ -8,11 +8,11 @@ def get_steering_controller():
     deviation = ctrl.Antecedent(np.arange(0, 101, 1), 'deviation')
     steering = ctrl.Consequent(np.arange(0, 101, 1), 'steering')
 
-    deviation['farleft'] = fuzz.trapmf(deviation.universe, [0, 0, 25, 40])
-    deviation['left'] = fuzz.trimf(deviation.universe, [25, 40, 50])
+    deviation['farleft'] = fuzz.trapmf(deviation.universe, [0, 0, 35, 45])
+    deviation['left'] = fuzz.trimf(deviation.universe, [40, 45, 50])
     deviation['middle'] = fuzz.trimf(deviation.universe, [40,50,60])
-    deviation['right'] = fuzz.trimf(deviation.universe, [50,60,75])
-    deviation['farright'] = fuzz.trapmf(deviation.universe, [ 60,75,100,100])
+    deviation['right'] = fuzz.trimf(deviation.universe, [50,55,60])
+    deviation['farright'] = fuzz.trapmf(deviation.universe, [ 55,65,100,100])
 
     steering['farleft'] = fuzz.trapmf(steering.universe, [0, 0, 25, 40])
     steering['left'] = fuzz.trimf(steering.universe, [25, 40, 50])

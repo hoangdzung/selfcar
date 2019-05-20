@@ -20,7 +20,7 @@ def linear_function(x1, y1, x2, y2):
         def get_y(xx): return k*xx + b
     return k, b, get_x, get_y
 
-def distance_to_borders(sensorL, sensorR, UL, UR, virtual_map):
+def distance_to_borders(sensorL, sensorR, UL, UR, center, virtual_map):
     """
     sensorL: position of left sensor
     sensorR: position of right sensor
@@ -37,14 +37,23 @@ def distance_to_borders(sensorL, sensorR, UL, UR, virtual_map):
     distanceR, impactR = search_for_impact(k, b, get_x, get_y, x1, y1, x2, y2, virtual_map)
     
     # back
-    x1, y1 = UL
-    x2, y2 = UR
-    k, b, get_x, get_y = linear_function(x1, y1, x2, y2)
+    x3, y3 = UL
+    x4, y4 = UR
+    k, b, get_x, get_y = linear_function(x3, y3, x4, y4)
 
-    distanceBackL, impactBackL = search_for_impact(k, b, get_x, get_y, x2, y2, x1, y1, virtual_map)
-    distanceBackR, impactBackR = search_for_impact(k, b, get_x, get_y, x1, y1, x2, y2, virtual_map)
+    distanceBackL, impactBackL = search_for_impact(k, b, get_x, get_y, x4, y4, x3, y3, virtual_map)
+    distanceBackR, impactBackR = search_for_impact(k, b, get_x, get_y, x3, y3, x4, y4, virtual_map)
 
-    return distanceL, distanceR, distanceBackL, distanceBackR, impactL, impactR, impactBackL, impactBackR
+    # front nearly 45degree
+    x5,y5 = center
+    k, b, get_x, get_y = linear_function(x5, y5, x1, y1)
+    distanceL45, impactL45 = search_for_impact(k, b, get_x, get_y, x5, y5, x1, y1, virtual_map)
+    k, b, get_x, get_y = linear_function(x5, y5, x2, y2)
+    distanceR45, impactR45 = search_for_impact(k, b, get_x, get_y, x5, y5, x2, y2, virtual_map)
+
+    distances= [distanceL, distanceR, distanceBackL, distanceBackR, distanceL45, distanceR45]
+    impacts = [impactL, impactR, impactBackL, impactBackR, impactL45, impactR45]
+    return distances, impacts
 
 def distance_to_obstacles(sensorL, sensorR, LL, LR, virtual_map):
     """
