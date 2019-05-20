@@ -40,12 +40,12 @@ class Road():
             self.color = (255,0,0) 
         self.draw(display)
 
-    def update(self, display):
+    def update(self):
         if self.type == 'intersection':
             self.count = (self.count+1)%self.time
             self.textsurface = self.myfont.render(str(self.count), False, (0, 0, 0))
-            self.draw(display)
-            display.blit(self.textsurface,((self.pts1[0]+self.pts3[0])/2,(self.pts1[1]+self.pts3[1])/2))
+            # self.draw(display)
+            # display.blit(self.textsurface,((self.pts1[0]+self.pts3[0])/2,(self.pts1[1]+self.pts3[1])/2))
 
     def include(self, x, y):
         return self.polygon.contains(Point(x,y))
@@ -125,14 +125,14 @@ class Car(pygame.sprite.Sprite):
 
 def main():
     pygame.init()
-
+    
     DISPLAY=pygame.display.set_mode((500,400),0,32)
 
     WHITE=(255,255,255)
     BLUE=(0,0,255)
     RED=(255,0,0)
 
-    DISPLAY.fill(WHITE)
+    
     road1 = Road([0,0], [50,0], [50, 200] , [0,200])
     road2 = Road([0,200], [50,200], [50,250], [0,250], "intersection", 20)
     road3 = Road([50,200], [300, 200],[300,250], [50,250])
@@ -140,8 +140,7 @@ def main():
     road5 = Road([300,200], [350,200], [50, 0], [50,50])
     roads = [road1, road2, road3, road4, road5]
     # pygame.draw.rect(DISPLAY,BLUE,(200,150,100,50))
-    for road in roads:
-        road.draw(DISPLAY)
+    
     # car = Car(25,225,20,10)
     # car.draw(DISPLAY)
     routes  = []
@@ -184,6 +183,7 @@ def main():
                 if event.key==pygame.K_KP_ENTER:
                     start = True
         i+=1
+
         if i%500==0:
             for road in roads:
                 road.update(DISPLAY)
