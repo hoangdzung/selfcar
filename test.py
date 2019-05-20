@@ -223,7 +223,7 @@ class Car(pygame.sprite.Sprite):
         self.speed_controller.input['distance'] = min(100, self.redlight_distance)
         self.speed_controller.compute()
         # self.speed = min(self.speed, 3*self.speed_controller.output['speed']/100)
-        self.speed = 5*self.speed_controller.output['speed']/100
+        self.speed = 3*self.speed_controller.output['speed']/100
         print(self.redlight_distance, self.speed)
         # print(self.time2changeRedlight, self.distanceRedLight, self.speed
 
@@ -249,7 +249,7 @@ class Car(pygame.sprite.Sprite):
         self.steering_controller.compute()
         # steering = math.radians(self.steering_controller.output['steering']-180)/900
         # print(steering)
-        steering = 3*math.pi*(self.steering_controller.output['steering']-50)/(180*50)
+        steering = 5*math.pi*(self.steering_controller.output['steering']-45)/(180*50)
         # steering 
         return steering
 
@@ -427,7 +427,7 @@ def main():
 
 
     while True:
-        clock.tick(20)
+        clock.tick(60)
         for event in pygame.event.get():
             if event.type == pygame.MOUSEBUTTONUP and event.button == 3:
                 pos = pygame.mouse.get_pos()
