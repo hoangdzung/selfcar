@@ -11,6 +11,9 @@ from utils import euclide_distance
 from distance import distance_to_borders, distance_to_obstacles
 from virtual_map import Map 
 from controller import get_steering_controller
+
+import numpy as np 
+
 from obstacle import init_obstacle_from_pos
 steering_controller = get_steering_controller()
 
@@ -102,13 +105,16 @@ class Car(pygame.sprite.Sprite):
         self.distanceBackR = None
 
         self.find_init_angle_sensor_with_center_pos()
+        self.rotate_true_angle()
         self.compute_pos_sensors()
         
 
         # self.center = [(self.front_left[0] + self.back_right[0])/2,(self.front_left[1] + self.back_right[1])/2]
-    def get_start_angle(self):
+    def rotate_true_angle(self):
         self.sensor_redlight()
-        # self. angle = 
+        right_vector = np.array(self.next_redlight_location) - np.array([self.rect.left, self.rect.top])
+        self.angle = - np.arccos(right_vector[0]/np.linalg.norm(right_vector)) 
+
     def set_routes(self,routes):
         self.routes=routes
 
@@ -191,14 +197,18 @@ class Car(pygame.sprite.Sprite):
         if self.distanceFR is not None:
             pygame.draw.line(display, (255, 0, 0), self.front_right, self.impactFR)
 
-    def update(self):
+    def update(self, display):
         #
         self.move_forward()
         self.compute_pos_sensors()
+        if self.road_idx+1==len(self.routes):
+            return False
+        self.sensor_redlight()
         self.compute_distance()
         angle = self.cal_steering_angle()
-        # self.rotate(angle)
-        # self.draw(display)
+        self.rotate(angle)
+        self.draw(display)
+        return True
     
     def cal_steering_angle(self):
         self.steering_controller.input['deviation'] = 100.0*self.distanceR /(self.distanceL+self.distanceR)
@@ -210,7 +220,7 @@ class Car(pygame.sprite.Sprite):
         return steering
 
     def move_forward(self):
-        s = 5
+        s = 3
         curCenterX, curCenterY = self.rect.center
         newCenterX, newCenterY = int(curCenterX + s*math.cos(self.angle)), int(curCenterY - s*math.sin(self.angle))
         self.rect.center = (newCenterX, newCenterY)
@@ -231,16 +241,22 @@ class Car(pygame.sprite.Sprite):
 
     @staticmethod 
     def find_common_vertex(road1, road2):
-        return [pts for pts in road1.points if pts in road2.points ]
+        common_vertex = [pts for pts in road1.points if pts in road2.points ]
+        print(len(common_vertex))
+        return common_vertex
 
     def sensor_redlight(self):
         # TODO: check at the end of routes
         self.road_idx = self.find_location()
+        if self.road_idx == -1:
+            raise "Out of map"
         if self.routes[self.road_idx].type == 'road': 
             common_vertex = self.find_common_vertex(self.routes[self.road_idx], self.routes[self.road_idx+1])
+            print(self.routes[self.road_idx].type, self.routes[self.road_idx+1].type)
             self.next_intersection = self.routes[self.road_idx+1]
         elif self.routes[self.road_idx].type == 'intersection':
             common_vertex = self.find_common_vertex(self.routes[self.road_idx+1], self.routes[self.road_idx+2])
+            print(self.routes[self.road_idx+1].type, self.routes[self.road_idx+2].type)
             self.next_intersection = self.routes[self.road_idx+2]
 
         self.next_redlight_location = [(common_vertex[0][0]+common_vertex[1][0])/2, (common_vertex[0][1]+common_vertex[1][1])/2]
@@ -249,7 +265,7 @@ class Car(pygame.sprite.Sprite):
 
 
 def main():
-    # import pdb;pdb.set_trace()
+
     pygame.init()
     clock = pygame.time.Clock()
     mapW = 1000
@@ -382,9 +398,12 @@ def main():
             obstacle.draw(DISPLAY)
         
         car.sensor_redlight()
-        car.update()
+        updated = car.update(DISPLAY)
+        if not updated:
+            break
         print(car.redlight_distance, car.redlight_time)
         car.draw(DISPLAY)    
         pygame.display.update()
+    print("Done")
 
 main()
