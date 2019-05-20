@@ -2,35 +2,35 @@ import numpy as np
 import skfuzzy as fuzz
 from skfuzzy import control as ctrl
 
-# def get_steering_controller():
-#     # New Antecedent/Consequent objects hold universe variables and membership
-#     # functions
-#     deviation = ctrl.Antecedent(np.arange(0, 101, 1), 'deviation')
-#     steering = ctrl.Consequent(np.arange(0, 101, 1), 'steering')
-
-#     deviation['farleft'] = fuzz.trapmf(deviation.universe, [0, 0, 25, 40])
-#     deviation['left'] = fuzz.trimf(deviation.universe, [25, 40, 50])
-#     deviation['middle'] = fuzz.trimf(deviation.universe, [40,50,60])
-#     deviation['right'] = fuzz.trimf(deviation.universe, [50,60,75])
-#     deviation['farright'] = fuzz.trapmf(deviation.universe, [ 60,75,100,100])
-
-#     steering['farleft'] = fuzz.trapmf(steering.universe, [0, 0, 25, 40])
-#     steering['left'] = fuzz.trimf(steering.universe, [25, 40, 50])
-#     steering['middle'] = fuzz.trimf(steering.universe, [40,50,60])
-#     steering['right'] = fuzz.trimf(steering.universe, [50,60,75])
-#     steering['farright'] = fuzz.trapmf(steering.universe, [ 60,75,100,100])
-
-#     rule1 = ctrl.Rule(deviation['farleft'], steering['farright'])
-#     rule2 = ctrl.Rule(deviation['left'], steering['right'])
-#     rule3 = ctrl.Rule(deviation['middle'], steering['middle'])
-#     rule4 = ctrl.Rule(deviation['right'], steering['left'])
-#     rule5 = ctrl.Rule(deviation['farright'], steering['farleft'])
-#     steering_ctrl = ctrl.ControlSystem([rule1, rule2, rule3, rule4, rule5])
-
-#     steering_controller = ctrl.ControlSystemSimulation(steering_ctrl)
-#     return steering_controller
-
 def get_steering_controller():
+    # New Antecedent/Consequent objects hold universe variables and membership
+    # functions
+    deviation = ctrl.Antecedent(np.arange(0, 101, 1), 'deviation')
+    steering = ctrl.Consequent(np.arange(0, 101, 1), 'steering')
+
+    deviation['farleft'] = fuzz.trapmf(deviation.universe, [0, 0, 25, 40])
+    deviation['left'] = fuzz.trimf(deviation.universe, [25, 40, 50])
+    deviation['middle'] = fuzz.trimf(deviation.universe, [40,50,60])
+    deviation['right'] = fuzz.trimf(deviation.universe, [50,60,75])
+    deviation['farright'] = fuzz.trapmf(deviation.universe, [ 60,75,100,100])
+
+    steering['farleft'] = fuzz.trapmf(steering.universe, [0, 0, 25, 40])
+    steering['left'] = fuzz.trimf(steering.universe, [25, 40, 50])
+    steering['middle'] = fuzz.trimf(steering.universe, [40,50,60])
+    steering['right'] = fuzz.trimf(steering.universe, [50,60,75])
+    steering['farright'] = fuzz.trapmf(steering.universe, [ 60,75,100,100])
+
+    rule1 = ctrl.Rule(deviation['farleft'], steering['farright'])
+    rule2 = ctrl.Rule(deviation['left'], steering['right'])
+    rule3 = ctrl.Rule(deviation['middle'], steering['middle'])
+    rule4 = ctrl.Rule(deviation['right'], steering['left'])
+    rule5 = ctrl.Rule(deviation['farright'], steering['farleft'])
+    steering_ctrl = ctrl.ControlSystem([rule1, rule2, rule3, rule4, rule5])
+
+    steering_controller = ctrl.ControlSystemSimulation(steering_ctrl)
+    return steering_controller
+
+def get_steering_controller2():
     # New Antecedent/Consequent objects hold universe variables and membership
     # functions
     deviation_front = ctrl.Antecedent(np.arange(0, 101, 1), 'deviation_front')
@@ -55,41 +55,19 @@ def get_steering_controller():
     steering['right'] = fuzz.trimf(steering.universe, [50,60,75])
     steering['farright'] = fuzz.trapmf(steering.universe, [ 60,75,100,100])
 
-    rule1 = ctrl.Rule(deviation_back['middle']& deviation_front['farleft'], steering['farright'])
-    rule2 = ctrl.Rule(deviation_back['middle']& deviation_front['left'], steering['right'])
-    rule3 = ctrl.Rule(deviation_back['middle']& deviation_front['middle'], steering['middle'])
-    rule4 = ctrl.Rule(deviation_back['middle']& deviation_front['right'], steering['left'])
-    rule5 = ctrl.Rule(deviation_back['middle']& deviation_front['farright'], steering['farleft'])
-    
-    rule6 = ctrl.Rule(deviation_back['farleft']& deviation_front['farleft'], steering['middle'])
-    rule7 = ctrl.Rule(deviation_back['farleft']& deviation_front['left'], steering['right'])
-    rule8 = ctrl.Rule(deviation_back['farleft']& deviation_front['middle'], steering['right'])
-    rule9 = ctrl.Rule(deviation_back['farleft']& deviation_front['right'], steering['left'])
-    rule10 = ctrl.Rule(deviation_back['farleft']& deviation_front['farright'], steering['farleft'])
+    rule1 = ctrl.Rule(deviation_front['farleft'], steering['farright'])
+    rule2 = ctrl.Rule(deviation_front['left'], steering['right'])
+    rule3 = ctrl.Rule(deviation_front['right'], steering['left'])
+    rule4 = ctrl.Rule(deviation_front['farright'], steering['farleft'])
 
-    rule11 = ctrl.Rule(deviation_back['farright']& deviation_front['farleft'], steering['farright'])
-    rule12 = ctrl.Rule(deviation_back['farright']& deviation_front['left'], steering['right'])
-    rule13 = ctrl.Rule(deviation_back['farright']& deviation_front['middle'], steering['left'])
-    rule14 = ctrl.Rule(deviation_back['farright']& deviation_front['right'], steering['left'])
-    rule15 = ctrl.Rule(deviation_back['farright']& deviation_front['farright'], steering['middle'])
-
-    rule16 = ctrl.Rule(deviation_back['left']& deviation_front['farleft'], steering['right'])
-    rule17 = ctrl.Rule(deviation_back['left']& deviation_front['left'], steering['middle'])
-    rule18 = ctrl.Rule(deviation_back['left']& deviation_front['middle'], steering['left'])
-    rule19 = ctrl.Rule(deviation_back['left']& deviation_front['right'], steering['left'])
-    rule20 = ctrl.Rule(deviation_back['left']& deviation_front['farright'], steering['farleft'])
-
-    rule21 = ctrl.Rule(deviation_back['right']& deviation_front['farleft'], steering['farright'])
-    rule22 = ctrl.Rule(deviation_back['right']& deviation_front['left'], steering['right'])
-    rule23 = ctrl.Rule(deviation_back['right']& deviation_front['middle'], steering['right'])
-    rule24 = ctrl.Rule(deviation_back['right']& deviation_front['right'], steering['middle'])
-    rule25 = ctrl.Rule(deviation_back['right']& deviation_front['farright'], steering['left'])
+    rule5 = ctrl.Rule(deviation_back['farleft'] & deviation_front['middle'], steering['left'])
+    rule6 = ctrl.Rule(deviation_back['left'] & deviation_front['middle'], steering['left'])
+    rule7 = ctrl.Rule(deviation_back['middle'] & deviation_front['middle'], steering['middle'])
+    rule8 = ctrl.Rule(deviation_back['right'] & deviation_front['middle'], steering['right'])
+    rule9 = ctrl.Rule(deviation_back['farright'] & deviation_front['middle'], steering['right'])
 
     steering_ctrl = ctrl.ControlSystem([rule1, rule2, rule3, rule4, rule5,
-                                        rule6, rule7, rule8, rule9, rule10,
-                                        rule11, rule12, rule13, rule14, rule15,
-                                        rule16, rule17, rule18, rule19, rule20,
-                                        rule12, rule22, rule23, rule24, rule25])
+                                        rule6, rule7, rule8, rule9])
 
     steering_controller = ctrl.ControlSystemSimulation(steering_ctrl)
     return steering_controller

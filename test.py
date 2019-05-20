@@ -10,12 +10,12 @@ import math
 from utils import euclide_distance
 from distance import distance_to_borders, distance_to_obstacles
 from virtual_map import Map 
-from controller import get_steering_controller
+from controller import get_steering_controller2
 
 import numpy as np 
 
 from obstacle import init_obstacle_from_pos
-steering_controller = get_steering_controller()
+steering_controller = get_steering_controller2()
 
 class Road():
     def __init__(self, pts1, pts2, pts3, pts4, type='road', time=None):
@@ -103,6 +103,7 @@ class Car(pygame.sprite.Sprite):
         self.distanceFR = None
         self.distanceBackL = None
         self.distanceBackR = None
+        self.next_intersection_idx = None 
 
         self.find_init_angle_sensor_with_center_pos()
         self.rotate_true_angle()
@@ -211,12 +212,13 @@ class Car(pygame.sprite.Sprite):
         return True
     
     def cal_steering_angle(self):
-        self.steering_controller.input['deviation_front'] = 100.0*self.distanceFR /(self.distanceFL+self.distanceFR)
-        self.steering_controller.input['deviation_back'] = 100.0*self.distanceR /(self.distanceL+self.distanceR)
+        print(self.distanceFL,self.distanceFR)
+        self.steering_controller.input['deviation_front'] = 100.0*self.distanceR /(self.distanceL+self.distanceR)
+        self.steering_controller.input['deviation_back'] = 100.0*self.distanceBackR /(self.distanceBackL+self.distanceBackR)
         self.steering_controller.compute()
         # steering = math.radians(self.steering_controller.output['steering']-180)/900
         # print(steering)
-        steering = 4*math.pi*(self.steering_controller.output['steering']-50)/(180*50)
+        steering = 3*math.pi*(self.steering_controller.output['steering']-50)/(180*50)
         # steering 
         return steering
 
@@ -238,9 +240,10 @@ class Car(pygame.sprite.Sprite):
                 continue
             if road.include(self.rect.left, self.rect.top):
                 return i
-        if self.road_idx +1 < len(self.routes):
-            return self.road_idx+1
-        return -1
+        # print(self.redlight_distance)
+        # if self.road_idx +1 < len(self.routes):
+        #     return self.road_idx+1
+        return self.road_idx
 
     @staticmethod 
     def find_common_vertex(road1, road2):
@@ -253,15 +256,14 @@ class Car(pygame.sprite.Sprite):
         
         if self.road_idx == -1:
             raise "Out of map"
-        if self.routes[self.road_idx].type == 'road': 
-            common_vertex = self.find_common_vertex(self.routes[self.road_idx], self.routes[self.road_idx+1])
-            # print(self.routes[self.road_idx].type, self.routes[self.road_idx+1].type)
-            self.next_intersection = self.routes[self.road_idx+1]
-        elif self.routes[self.road_idx].type == 'intersection':
-            common_vertex = self.find_common_vertex(self.routes[self.road_idx+1], self.routes[self.road_idx+2])
-            # print(self.routes[self.road_idx+1].type, self.routes[self.road_idx+2].type)
-            self.next_intersection = self.routes[self.road_idx+2]
-        print(self.routes[self.road_idx].type, self.next_intersection.type)
+        for i in range(self.road_idx+1, len(self.routes)):
+            if self.routes[i].type == 'intersection':
+                self.next_intersection_idx = i
+                self.next_intersection = self.routes[i]
+                break
+
+        common_vertex = self.find_common_vertex(self.routes[self.next_intersection_idx-1], self.next_intersection)
+        # print(self.routes[self.road_idx].type, self.next_intersection.type)
         self.next_redlight_location = [(common_vertex[0][0]+common_vertex[1][0])/2, (common_vertex[0][1]+common_vertex[1][1])/2]
         self.redlight_distance = euclide_distance([self.rect.left, self.rect.top], self.next_redlight_location)
         self.redlight_time = self.next_intersection.count 
@@ -375,7 +377,7 @@ def main():
                 sys.exit()
             elif event.type == MOUSEBUTTONUP:
                 mousex, mousey = event.pos
-                car = Car(mousex,mousey,20,10, steering_controller,virtual_map ,routes)
+                car = Car(mousex,mousey,10,5, steering_controller,virtual_map ,routes)
                 car.draw(DISPLAY)
                 car_pick=True
         if car_pick:
