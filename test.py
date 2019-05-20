@@ -29,10 +29,10 @@ class Road():
             self.count = random.randint(0, self.time)
             self.myfont = pygame.font.SysFont('Comic Sans MS', 30)
             self.textsurface = self.myfont.render(str(self.count), False, (0, 0, 0))
-        pts1 = [x * ROAD_SCALE for x in pts1]
-        pts2 = [x * ROAD_SCALE for x in pts2]
-        pts3 = [x * ROAD_SCALE for x in pts3]
-        pts4 = [x * ROAD_SCALE for x in pts4]
+        pts1 = [int(x * ROAD_SCALE) for x in pts1]
+        pts2 = [int(x * ROAD_SCALE) for x in pts2]
+        pts3 = [int(x * ROAD_SCALE) for x in pts3]
+        pts4 = [int(x * ROAD_SCALE) for x in pts4]
 
         self.type = type
         self.pts1 = pts1
@@ -116,8 +116,9 @@ class Car(pygame.sprite.Sprite):
         self.distanceR45 = None 
 
         self.find_init_angle_sensor_with_center_pos()
-        self.rotate_true_angle()
         self.compute_pos_sensors()
+        self.rotate_true_angle()
+        
         
 
         # self.center = [(self.front_left[0] + self.back_right[0])/2,(self.front_left[1] + self.back_right[1])/2]
@@ -297,8 +298,11 @@ class Car(pygame.sprite.Sprite):
 
         common_vertex = self.find_common_vertex(self.routes[self.next_intersection_idx-1], self.next_intersection)
         # print(self.routes[self.road_idx].type, self.next_intersection.type)
-        self.next_redlight_location = [(common_vertex[0][0]+common_vertex[1][0])/2, (common_vertex[0][1]+common_vertex[1][1])/2]
-        self.redlight_distance = euclide_distance([self.rect.left, self.rect.top], self.next_redlight_location)
+        try:
+            self.next_redlight_location = [(common_vertex[0][0]+common_vertex[1][0])/2, (common_vertex[0][1]+common_vertex[1][1])/2]
+        except:
+            import pdb; pdb.set_trace()
+        self.redlight_distance = euclide_distance(self.upperMid, self.next_redlight_location)
         self.redlight_time = self.next_intersection.count 
 
 
@@ -363,9 +367,9 @@ def main():
         Road([42,500], [74, 500], [74,534], [42, 534], "intersection", TIME),
         Road([36,225], [72, 225], [74,500], [42, 500]),
         Road([172,225], [203, 225], [203,363], [172, 363]),
-        Road([172,363], [203, 363], [200,390], [172, 390], "intersection", TIME),
+        Road([172,363], [203, 363], [203,390], [172, 390], "intersection", TIME),
         Road([172,390], [203, 390], [200,500], [172, 500]),
-        Road([203,363], [310, 357], [313,389], [200, 390]),
+        Road([203,363], [310, 357], [313,389], [203, 390]),
         Road([310,357], [345, 359], [346,386], [313, 389], "intersection", TIME),
         Road([313,389], [346, 386], [348,500], [312, 500]),
         Road([358,238], [397, 246], [345, 359], [310,357]),
