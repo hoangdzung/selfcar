@@ -10,6 +10,9 @@ import math
 from utils import euclide_distance
 from distance import distance_to_borders
 from virtual_map import Map 
+from controller import get_steering_controller
+
+steering_controller = get_steering_controller()
 
 class Road():
     def __init__(self, pts1, pts2, pts3, pts4, type='road', time=None):
@@ -72,11 +75,12 @@ def rotate(origin, point, angle):
     return qx, qy
 
 class Car(pygame.sprite.Sprite):
-    def __init__(self, x, y, w, h, virtual_map, routes=None):
+    def __init__(self, x, y, w, h, steering_controller, virtual_map, routes=None):
         self.image = pygame.transform.scale(pygame.image.load("car.png"), (w,h))
         self.rect = self.image.get_rect()
         self.rect.left = x
         self.rect.top = y
+        self.steering_controller = steering_controller
         # self.front_left = [x+w/2,y+h/2]
         # self.front_right = [x+w/2,y-h/2]
         # self.back_left = [x-w/2,y+h/2]
@@ -95,8 +99,12 @@ class Car(pygame.sprite.Sprite):
 
         self.find_init_angle_sensor_with_center_pos()
         self.compute_pos_sensors()
+        
+
         # self.center = [(self.front_left[0] + self.back_right[0])/2,(self.front_left[1] + self.back_right[1])/2]
-    
+    def get_start_angle(self):
+        self.sensor_redlight()
+        self. angle = 
     def set_routes(self,routes):
         self.routes=routes
 
@@ -170,8 +178,18 @@ class Car(pygame.sprite.Sprite):
 
     def update(self):
         self.compute_distance()
-        self.rotate()
+        angle = self.cal_steering_angle()
+        self.rotate(angle)
         # self.draw(display)
+    
+    def cal_steering_angle(self):
+        self.steering_controller.input['deviation'] = 100.0*self.distanceR /(self.distanceL+self.distanceR)
+        self.steering_controller.compute()
+        # steering = math.radians(self.steering_controller.output['steering']-180)/900
+        # print(steering)
+        steering = 4*math.pi*(self.steering_controller.output['steering']-50)/(180*50)
+        # steering 
+        return steering
 
     def compute_distance(self):
         self.distanceL, self.distanceR, self.impactL, self.impactR = distance_to_borders(self.front_left, 
@@ -268,7 +286,7 @@ def main():
                 sys.exit()
             elif event.type == MOUSEBUTTONUP:
                 mousex, mousey = event.pos
-                car = Car(mousex,mousey,20,10,virtual_map)
+                car = Car(mousex,mousey,20,10, steering_controller,virtual_map ,routes)
                 car.draw(DISPLAY)
                 car_pick=True
         if car_pick:
