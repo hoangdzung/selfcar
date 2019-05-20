@@ -1,6 +1,6 @@
 import numpy as np
 import math
-from utils import CHOICE_ROAD, euclide_distance
+from utils import CHOICE_ROAD, euclide_distance, OBSTACLE
 
 def linear_function(x1, y1, x2, y2):
     get_x = None
@@ -35,20 +35,36 @@ def distance_to_borders(sensorL, sensorR, UL, UR, virtual_map):
 
     distanceL, impactL = search_for_impact(k, b, get_x, get_y, x2, y2, x1, y1, virtual_map)
     distanceR, impactR = search_for_impact(k, b, get_x, get_y, x1, y1, x2, y2, virtual_map)
+    
+    # back
+    x1, y1 = UL
+    x2, y2 = UR
+    k, b, get_x, get_y = linear_function(x1, y1, x2, y2)
 
-    # forward
-    # x3, y3 = UL
-    # x4, y4 = UR
-    # k1, b1, get_x1, get_y1 = linear_function(x1, y1, x3, y3)
-    # distanceForwardL, impactForwardL = search_for_impact(
-    #     k1, b1, get_x1, get_y1, x3, y3, x1, y1, virtual_map)
-    # k2, b2, get_x2, get_y2 = linear_function(x2, y2, x4, y4)
-    # distanceForwardR, impactForwardR = search_for_impact(
-    #     k2, b2, get_x2, get_y2, x4, y4, x2, y2, virtual_map)
+    distanceBackL, impactBackL = search_for_impact(k, b, get_x, get_y, x2, y2, x1, y1, virtual_map)
+    distanceBackR, impactBackR = search_for_impact(k, b, get_x, get_y, x1, y1, x2, y2, virtual_map)
 
-    # impacts = [impactL, impactR, impactForwardL, impactForwardR]
-    # impacts = [impactL, impactR]
-    return distanceL, distanceR, impactL, impactR
+    return distanceL, distanceR, distanceBackL, distanceBackR, impactL, impactR, impactBackL, impactBackR
+
+def distance_to_obstacles(sensorL, sensorR, LL, LR, virtual_map):
+    """
+    sensorL: position of left sensor
+    sensorR: position of right sensor
+    LL: lower left position of car
+    LR: lower right position of car
+    init_angle: angle between sensorL with x axis, in radians format
+    rotation angle: in radians format
+    """
+    x1, y1 = sensorL
+    x2, y2 = sensorR
+    x3, y3 = LL
+    x4, y4 = LR
+    k1, b1, get_x1, get_y1 = linear_function(x1, y1, x3, y3)
+    distanceForwardL, impactForwardL = search_for_impact_obstacles(k1, b1, get_x1, get_y1, x3, y3, x1, y1, virtual_map)
+    k2, b2, get_x2, get_y2 = linear_function(x2, y2, x4, y4)
+    distanceForwardR, impactForwardR = search_for_impact_obstacles(k2, b2, get_x2, get_y2, x4, y4, x2, y2, virtual_map)
+    
+    return distanceForwardL, distanceForwardR, impactForwardL, impactForwardR
 
 def search_for_impact(k, b, get_x, get_y, x1, y1, x2, y2, mapp, values=[1]):
     """
@@ -114,6 +130,84 @@ def search_for_impact(k, b, get_x, get_y, x1, y1, x2, y2, mapp, values=[1]):
                         # x_impact, y_impact = None, None
                         break
                     if mapp[int(y_impact), int(x_impact)] not in values:
+                        break
+                except:
+                    # x_impact, y_impact = None, None
+                    break
+                y_impact += 1
+
+    if x_impact is not None and y_impact is not None:
+        x_impact = int(x_impact)
+        y_impact = int(y_impact)
+        distance = euclide_distance((x_impact, y_impact), (x2, y2))
+        impact = (x_impact, y_impact)
+        return distance, impact
+    return None, (None, None)
+
+def search_for_impact_obstacles(k, b, get_x, get_y, x1, y1, x2, y2, mapp):
+    """
+    search with direction from (x1,y1) -> (x2, y2) ->
+    start from x2, y2
+    """
+    abs_k = abs(k)
+    # search for x or y axis,  then find increase or decrease
+    x_impact = None
+    y_impact = None
+    if abs_k >= 0 and abs_k <= 1:  # find in x axis
+        if x1 >= x2:  # decrease x, because x_impact <= x2
+            x_impact = x2 - 1
+            while True:
+                y_impact = get_y(x_impact)
+                # check if x_impact, y_impact is border
+                try:
+                    if x_impact < 0 or y_impact < 0:
+                        # x_impact, y_impact = None, None
+                        break
+                    if mapp[int(y_impact), int(x_impact)] == OBSTACLE or mapp[int(y_impact), int(x_impact)] != CHOICE_ROAD:
+                        break
+                except:
+                    # x_impact, y_impact = None, None
+                    break
+                x_impact -= 1
+        else:
+            x_impact = x2 + 1
+            while True:
+                y_impact = get_y(x_impact)
+                # check if x_impact, y_impact is border
+                try:
+                    if x_impact < 0 or y_impact < 0:
+                        # x_impact, y_impact = None, None
+                        break
+                    if mapp[int(y_impact), int(x_impact)] == OBSTACLE or mapp[int(y_impact), int(x_impact)] != CHOICE_ROAD:
+                        break
+                except:
+                    # x_impact, y_impact = None, None
+                    break
+                x_impact += 1
+    else:  # find in y axis
+        if y1 >= y2:  # decrease y, because y_impact <= y2
+            y_impact = y2 - 1
+            while True:
+                x_impact = get_x(y_impact)
+                try:
+                    if x_impact < 0 or y_impact < 0:
+                        # x_impact, y_impact = None, None
+                        break
+                    if mapp[int(y_impact), int(x_impact)] == OBSTACLE or mapp[int(y_impact), int(x_impact)] != CHOICE_ROAD:
+                        break
+                except:
+                    # x_impact, y_impact = None, None
+                    break
+                y_impact -= 1
+        else:
+            y_impact = y2 + 1
+            while True:
+                x_impact = get_x(y_impact)
+                try:
+                    if x_impact < 0 or y_impact < 0:
+                        # x_impact, y_impact = None, None
+                        break
+                    if mapp[int(y_impact), int(x_impact)] == OBSTACLE or mapp[int(y_impact), int(x_impact)] != CHOICE_ROAD:
                         break
                 except:
                     # x_impact, y_impact = None, None

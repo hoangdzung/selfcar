@@ -8,7 +8,7 @@ import random
 import math
 
 from utils import euclide_distance
-from distance import distance_to_borders
+from distance import distance_to_borders, distance_to_obstacles
 from virtual_map import Map 
 from controller import get_steering_controller
 
@@ -96,6 +96,10 @@ class Car(pygame.sprite.Sprite):
         # 
         self.distanceL = None 
         self.distanceR = None 
+        self.distanceFL = None 
+        self.distanceFR = None
+        self.distanceBackL = None
+        self.distanceBackR = None
 
         self.find_init_angle_sensor_with_center_pos()
         self.compute_pos_sensors()
@@ -104,7 +108,7 @@ class Car(pygame.sprite.Sprite):
         # self.center = [(self.front_left[0] + self.back_right[0])/2,(self.front_left[1] + self.back_right[1])/2]
     def get_start_angle(self):
         self.sensor_redlight()
-        self. angle = 
+        # self. angle = 
     def set_routes(self,routes):
         self.routes=routes
 
@@ -120,6 +124,9 @@ class Car(pygame.sprite.Sprite):
     
     def compute_pos_sensors(self):
         half_diagonal = self.half_diagonal
+        # if self.temp_center is not None:
+        #     centerX, centerY = self.temp_center
+        # else:
         centerX, centerY = self.rect.center
         self.front_left = [centerX+half_diagonal * math.cos(self.angle+self.init_sensor_angle),
                         centerY - half_diagonal*math.sin(self.angle+self.init_sensor_angle)]  # position of left sensor
@@ -135,10 +142,10 @@ class Car(pygame.sprite.Sprite):
             centerX+half_diagonal * math.cos(math.pi + self.angle+self.init_sensor_angle),
             centerY - half_diagonal*math.sin(math.pi + self.angle+self.init_sensor_angle)
         ]  # position of right sensor
-        # self.upperMid = [
-        #     (self.sensorL[0]+self.sensorR[0]) // 2,
-        #     (self.sensorL[1]+self.sensorR[1]) // 2,
-        # ]
+        self.upperMid = [
+            (self.front_left[0]+self.front_right[0]) // 2,
+            (self.front_left[1]+self.front_right[1]) // 2,
+        ]
 
 
     def rotateAroundCenter(self, angle):
@@ -169,17 +176,28 @@ class Car(pygame.sprite.Sprite):
             display.blit(rotated_image, self.temp_center)
         else:
             display.blit(rotated_image, self.rect.center)
-        self.compute_pos_sensors()
         print(self.distanceL, self.distanceR)
+        self.compute_pos_sensors()
         if self.distanceL is not None:
             pygame.draw.line(display, (255, 0, 0), self.front_left, self.impactL)
         if self.distanceR is not None:
             pygame.draw.line(display, (255, 0, 0), self.front_right, self.impactR)
+        if self.distanceBackL is not None:
+            pygame.draw.line(display, (255, 0, 0), self.back_left, self.impactBackL)
+        if self.distanceBackR is not None:
+            pygame.draw.line(display, (255, 0, 0), self.back_right, self.impactBackR)
+        if self.distanceFL is not None:
+            pygame.draw.line(display, (255, 0, 0), self.front_left, self.impactFL)
+        if self.distanceFR is not None:
+            pygame.draw.line(display, (255, 0, 0), self.front_right, self.impactFR)
 
     def update(self):
+        #
+        self.move_forward()
+        self.compute_pos_sensors()
         self.compute_distance()
         angle = self.cal_steering_angle()
-        self.rotate(angle)
+        # self.rotate(angle)
         # self.draw(display)
     
     def cal_steering_angle(self):
@@ -191,8 +209,16 @@ class Car(pygame.sprite.Sprite):
         # steering 
         return steering
 
+    def move_forward(self):
+        s = 5
+        curCenterX, curCenterY = self.rect.center
+        newCenterX, newCenterY = int(curCenterX + s*math.cos(self.angle)), int(curCenterY - s*math.sin(self.angle))
+        self.rect.center = (newCenterX, newCenterY)
+
     def compute_distance(self):
-        self.distanceL, self.distanceR, self.impactL, self.impactR = distance_to_borders(self.front_left, 
+        self.distanceL, self.distanceR, self.distanceBackL, self.distanceBackR, self.impactL, self.impactR, self.impactBackL, self.impactBackR = distance_to_borders(self.front_left, 
+            self.front_right, self.back_left, self.back_right, self.virtual_map.map)
+        self.distanceFL, self.distanceFR, self.impactFL, self.impactFR = distance_to_obstacles(self.front_left, 
             self.front_right, self.back_left, self.back_right, self.virtual_map.map)
     
     def find_location(self):
@@ -223,7 +249,9 @@ class Car(pygame.sprite.Sprite):
 
 
 def main():
+    import pdb;pdb.set_trace()
     pygame.init()
+    clock = pygame.time.Clock()
     mapW = 1000
     mapH = 1000
     virtual_map = Map(mapW, mapH)
@@ -295,6 +323,7 @@ def main():
 
 
     while True:
+        clock.tick(20)
         DISPLAY.fill(WHITE)
         for road in roads:
             road.update()
