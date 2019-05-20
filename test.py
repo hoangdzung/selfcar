@@ -65,30 +65,66 @@ def rotate(origin, point, angle):
 
 class Car(pygame.sprite.Sprite):
     def __init__(self, x, y, w, h):
+        self.image = pygame.transform.scale(pygame.image.load("car.png"), (w,h))
+        self.rect = self.image.get_rect()
+        self.rect.left = x
+        self.rect.top = y
         self.front_left = [x+w/2,y+h/2]
         self.front_right = [x+w/2,y-h/2]
         self.back_left = [x-w/2,y+h/2]
         self.back_right = [x-w/2,y-h/2]
         self.color = (0,0,0)
-        self.image = pygame.transform.scale(pygame.image.load("car.png"), (w,h))
-        self.center = [(self.front_left[0] + self.back_right[0])/2,(self.front_left[1] + self.back_right[1])/2]
-    
-    def rotate(self,angle=math.pi/4):
+        self.angle = 0
+        self.temp_center = None
         
-        center =self.center
-        self.front_left = rotate(center, self.front_left, angle)
-        self.front_right = rotate(center, self.front_right, angle)
-        self.back_left = rotate(center, self.back_left, angle)
-        self.back_right = rotate(center, self.back_right, angle)
-        self.center = [(self.front_left[0] + self.back_right[0])/2,(self.front_left[1] + self.back_right[1])/2]
-        pygame.transform.rotate(self.image, angle) 
+        # self.center = [(self.front_left[0] + self.back_right[0])/2,(self.front_left[1] + self.back_right[1])/2]
+    
+    def rotate(self, angle=math.pi/4):
+        # center = self.rect.center
+        # self.front_left = rotate(center, self.front_left, angle)
+        # self.front_right = rotate(center, self.front_right, angle)
+        # self.back_left = rotate(center, self.back_left, angle)
+        # self.back_right = rotate(center, self.back_right, angle)
+        # self.center = [(self.front_left[0] + self.back_right[0])/2,(self.front_left[1] + self.back_right[1])/2]
+        self.angle += angle
+        self.temp_center = self.rotateAroundCenter(self.angle)
+        
+    def rotateAroundCenter(self, angle):
+        pos = self.rect.center
+        w, h = self.image.get_size()
+        originPos = [w/2, h/2]
+        # calcaulate the axis aligned bounding box of the rotated image
+        box = [pygame.math.Vector2(p) for p in [(0, 0), (w, 0), (w, -h), (0, -h)]]
+        box_rotate = [p.rotate(angle) for p in box]
+        min_box = (min(box_rotate, key=lambda p: p[0])[
+                0], min(box_rotate, key=lambda p: p[1])[1])
+        max_box = (max(box_rotate, key=lambda p: p[0])[
+                0], max(box_rotate, key=lambda p: p[1])[1])
+
+        # calculate the translation of the pivot
+        pivot = pygame.math.Vector2(originPos[0], -originPos[1])
+        pivot_rotate = pivot.rotate(angle)
+        pivot_move = pivot_rotate - pivot
+
+        # calculate the upper left origin of the rotated image
+        origin = (pos[0] - originPos[0] + min_box[0] - pivot_move[0],
+                pos[1] - originPos[1] - max_box[1] + pivot_move[1])
+        return origin
+        # get a rotated image
+        rotated_image = pygame.transform.rotate(self.image, math.degrees(angle))
+        # rotate and blit the image
+        display.blit(rotated_image, origin)
 
     def draw(self, display):
-        display.blit(self.image, self.center)
+        rotated_image = pygame.transform.rotate(self.image, math.degrees(self.angle))
+        if self.temp_center is not None:
+            display.blit(rotated_image, self.temp_center)
+        else:
+            display.blit(rotated_image, self.rect.center)
 
     def update(self, display):
         self.rotate()
-        self.draw(display)
+        # self.draw(display)
     
     def find_location(self):
         for i, road in self.routes:
@@ -135,7 +171,7 @@ def main():
     roads = [road1, road2, road3, road4, road5]
     # pygame.draw.rect(DISPLAY,BLUE,(200,150,100,50))
     
-    # car = Car(25,225,20,10)
+    car = Car(25,225,20,10)
     # car.draw(DISPLAY)
     routes  = []
     start = False
@@ -160,14 +196,17 @@ def main():
                 if event.key==pygame.K_KP_ENTER:
                     start = True
         i+=1
-
-        if i%500==0:
+        print(i)
+        if i%100==0:
             for road in roads:
                 road.update()
+            car.update(DISPLAY)
 
         DISPLAY.fill(WHITE)        
         for road in roads:
             road.draw(DISPLAY)
+        car.draw(DISPLAY)
+        
         pygame.display.update()
 
 main()
