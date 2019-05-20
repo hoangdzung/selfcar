@@ -29,8 +29,12 @@ class Road():
         self.is_chosen = False
         self.color = (255, 0,0)
 
+        self.textsurface_loc = None 
+
     def draw(self, display):
         pygame.draw.polygon(display, self.color, self.points)
+        if self.textsurface_loc is not None:
+            display.blit(self.textsurface, self.textsurface_loc)
 
     def clicked(self,display):
         self.is_chosen = not self.is_chosen
@@ -45,7 +49,9 @@ class Road():
             self.count = (self.count+1)%self.time
             self.textsurface = self.myfont.render(str(self.count), False, (0, 0, 0))
             # self.draw(display)
-            # display.blit(self.textsurface,((self.pts1[0]+self.pts3[0])/2,(self.pts1[1]+self.pts3[1])/2))
+            # 
+            self.textsurface_loc = ((self.pts1[0]+self.pts3[0])/2,(self.pts1[1]+self.pts3[1])/2)
+            
 
     def include(self, x, y):
         return self.polygon.contains(Point(x,y))
