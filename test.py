@@ -172,7 +172,7 @@ def main():
     mapH = 1000
     virtual_map = Map(mapW, mapH)
 
-    DISPLAY=pygame.display.set_mode((500,400),0,32)
+    DISPLAY=pygame.display.set_mode((1000,1000),0,32)
 
     WHITE=(255,255,255)
     BLUE=(0,0,255)
@@ -185,33 +185,14 @@ def main():
     road4 = Road([300,200], [350, 200], [350,250], [300,250], "intersection", 20)
     road5 = Road([300,200], [350,200], [50, 0], [50,50])
     roads = [road1, road2, road3, road4, road5]
-    # pygame.draw.rect(DISPLAY,BLUE,(200,150,100,50))
     
-    car = Car(25,225,20,10)
-    # car.draw(DISPLAY)
     routes  = []
-    start = False
-    i=0
-
-    car_pick=False
-    # while True:
-    #     DISPLAY.fill(WHITE)
-    #     for road in roads:
-    #         road.draw(DISPLAY)
-    #     for event in pygame.event.get():
-    #         if event.type==QUIT:
-    #             pygame.quit()
-    #             sys.exit()
-    #         elif event.type == MOUSEBUTTONUP:
-    #             mousex, mousey = event.pos
-    #             car = Car(mousex,mousey,20,10)
-    #             car.draw(DISPLAY)
-    #             car_pick=True
-    #     if car_pick:
-    #         break
-    #     pygame.display.update()
+    route_picked = False
 
     while True:
+        DISPLAY.fill(WHITE)
+        for road in roads:
+            road.draw(DISPLAY)
         mouseClicked = False
         for event in pygame.event.get():
             if event.type==QUIT:
@@ -222,7 +203,7 @@ def main():
             elif event.type == MOUSEBUTTONUP:
                 mousex, mousey = event.pos
                 mouseClicked = True
-            if mouseClicked and not start:
+            if mouseClicked:
                 for road in roads:
                     if road.include(mousex, mousey):
                         road.clicked(DISPLAY)
@@ -230,27 +211,42 @@ def main():
             if event.type==pygame.KEYDOWN:
                 if event.key==pygame.K_RETURN:
                     print("Enter")
-                    start = True
-                    car.set_routes(routes)
+                    route_picked = True
                     virtual_map.drawRoutes(routes)
                     # done choosing routes
                     # update virtual map
-        
+        if route_picked:
+            break
+        pygame.display.update()
 
+    car_pick=False
+    while True:
         DISPLAY.fill(WHITE)
         for road in roads:
             road.draw(DISPLAY)
-        i+=1
-        # print(i)
-        if start:
-            if i%100==0:
-                for road in roads:
-                    road.update()
-                car.sensor_redlight()
-                car.update()
-                print(car.redlight_distance, car.redlight_time)
-            car.draw(DISPLAY)
-            
+        for event in pygame.event.get():
+            if event.type==QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == MOUSEBUTTONUP:
+                mousex, mousey = event.pos
+                car = Car(mousex,mousey,20,10,routes)
+                car.draw(DISPLAY)
+                car_pick=True
+        if car_pick:
+            break
+        pygame.display.update()
+
+
+    while True:
+        DISPLAY.fill(WHITE)
+        for road in roads:
+            road.update()
+            road.draw(DISPLAY)
+        car.sensor_redlight()
+        car.update()
+        print(car.redlight_distance, car.redlight_time)
+        car.draw(DISPLAY)    
         pygame.display.update()
 
 main()
