@@ -7,7 +7,8 @@ from shapely.geometry.polygon import Polygon
 import random
 import math
 
-from utils import eculid_distance
+from utils import euclide_distance
+from distance import distance_to_borders
 from virtual_map import Map 
 
 class Road():
@@ -71,36 +72,67 @@ def rotate(origin, point, angle):
     return qx, qy
 
 class Car(pygame.sprite.Sprite):
-    def __init__(self, x, y, w, h, routes=None):
+    def __init__(self, x, y, w, h, virtual_map, routes=None):
         self.image = pygame.transform.scale(pygame.image.load("car.png"), (w,h))
         self.rect = self.image.get_rect()
         self.rect.left = x
         self.rect.top = y
-        self.front_left = [x+w/2,y+h/2]
-        self.front_right = [x+w/2,y-h/2]
-        self.back_left = [x-w/2,y+h/2]
-        self.back_right = [x-w/2,y-h/2]
+        # self.front_left = [x+w/2,y+h/2]
+        # self.front_right = [x+w/2,y-h/2]
+        # self.back_left = [x-w/2,y+h/2]
+        # self.back_right = [x-w/2,y-h/2]
         self.color = (0,0,0)
         self.angle = 0
         self.temp_center = None
         self.routes = routes
         self.road_idx = 0
-        
+        self.virtual_map = virtual_map
+
+
+        # 
+        self.distanceL = None 
+        self.distanceR = None 
+
+        self.find_init_angle_sensor_with_center_pos()
+        self.compute_pos_sensors()
         # self.center = [(self.front_left[0] + self.back_right[0])/2,(self.front_left[1] + self.back_right[1])/2]
     
     def set_routes(self,routes):
         self.routes=routes
 
-    def rotate(self, angle=math.pi/4):
-        # center = self.rect.center
-        # self.front_left = rotate(center, self.front_left, angle)
-        # self.front_right = rotate(center, self.front_right, angle)
-        # self.back_left = rotate(center, self.back_left, angle)
-        # self.back_right = rotate(center, self.back_right, angle)
-        # self.center = [(self.front_left[0] + self.back_right[0])/2,(self.front_left[1] + self.back_right[1])/2]
+    def rotate(self, angle=math.pi/32):
         self.angle += angle
         self.temp_center = self.rotateAroundCenter(self.angle)
-        
+
+    def find_init_angle_sensor_with_center_pos(self):
+        centerX, centerY = self.rect.center
+        ulX, ulY = self.rect.left, self.rect.top  # up left position
+        half_diagonal = euclide_distance((ulX, ulY), (centerX, centerY))
+        self.init_sensor_angle, self.half_diagonal = math.acos((self.rect.width//2)/half_diagonal), half_diagonal    
+    
+    def compute_pos_sensors(self):
+        half_diagonal = self.half_diagonal
+        centerX, centerY = self.rect.center
+        self.front_left = [centerX+half_diagonal * math.cos(self.angle+self.init_sensor_angle),
+                        centerY - half_diagonal*math.sin(self.angle+self.init_sensor_angle)]  # position of left sensor
+        self.front_right = [
+            centerX+half_diagonal * math.cos(self.angle-self.init_sensor_angle),
+            centerY - half_diagonal*math.sin(self.angle-self.init_sensor_angle)
+        ]  # position of right sensor
+        self.back_left = [
+            centerX+half_diagonal * math.cos(math.pi + self.angle-self.init_sensor_angle),
+            centerY - half_diagonal*math.sin(math.pi + self.angle-self.init_sensor_angle)
+        ]
+        self.back_right = [
+            centerX+half_diagonal * math.cos(math.pi + self.angle+self.init_sensor_angle),
+            centerY - half_diagonal*math.sin(math.pi + self.angle+self.init_sensor_angle)
+        ]  # position of right sensor
+        # self.upperMid = [
+        #     (self.sensorL[0]+self.sensorR[0]) // 2,
+        #     (self.sensorL[1]+self.sensorR[1]) // 2,
+        # ]
+
+
     def rotateAroundCenter(self, angle):
         pos = self.rect.center
         w, h = self.image.get_size()
@@ -122,10 +154,6 @@ class Car(pygame.sprite.Sprite):
         origin = (pos[0] - originPos[0] + min_box[0] - pivot_move[0],
                 pos[1] - originPos[1] - max_box[1] + pivot_move[1])
         return origin
-        # get a rotated image
-        rotated_image = pygame.transform.rotate(self.image, math.degrees(angle))
-        # rotate and blit the image
-        display.blit(rotated_image, origin)
 
     def draw(self, display):
         rotated_image = pygame.transform.rotate(self.image, math.degrees(self.angle))
@@ -133,11 +161,21 @@ class Car(pygame.sprite.Sprite):
             display.blit(rotated_image, self.temp_center)
         else:
             display.blit(rotated_image, self.rect.center)
+        self.compute_pos_sensors()
+        print(self.distanceL, self.distanceR)
+        if self.distanceL is not None:
+            pygame.draw.line(display, (255, 0, 0), self.front_left, self.impactL)
+        if self.distanceR is not None:
+            pygame.draw.line(display, (255, 0, 0), self.front_right, self.impactR)
 
     def update(self):
+        self.compute_distance()
         self.rotate()
         # self.draw(display)
 
+    def compute_distance(self):
+        self.distanceL, self.distanceR, self.impactL, self.impactR = distance_to_borders(self.front_left, 
+            self.front_right, self.back_left, self.back_right, self.virtual_map.map)
     
     def find_location(self):
         for i, road in enumerate(self.routes):
@@ -162,7 +200,7 @@ class Car(pygame.sprite.Sprite):
             self.next_intersection = self.routes[self.road_idx+2]
 
         self.next_redlight_location = [(common_vertex[0][0]+common_vertex[1][0])/2, (common_vertex[0][1]+common_vertex[1][1])/2]
-        self.redlight_distance = eculid_distance([self.rect.left, self.rect.top], self.next_redlight_location)
+        self.redlight_distance = euclide_distance([self.rect.left, self.rect.top], self.next_redlight_location)
         self.redlight_time = self.next_intersection.count 
 
 
@@ -187,7 +225,7 @@ def main():
     roads = [road1, road2, road3, road4, road5]
     # pygame.draw.rect(DISPLAY,BLUE,(200,150,100,50))
     
-    car = Car(25,225,20,10)
+    car = Car(25,225,20,10,virtual_map)
     # car.draw(DISPLAY)
     routes  = []
     start = False
