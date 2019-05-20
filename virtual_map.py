@@ -10,7 +10,7 @@ class Map():
         for road in routes:
             print(np.array(road.points).astype(np.int32).shape)
             cv2.fillPoly(self.map, pts=[np.array(road.points).astype(np.int32)], color=(CHOICE_ROAD))
-        
+        cv2.imwrite('routes.png', self.map*255)
 
     def drawObstacle(self, obstacles):
         for obstacle in obstacles:

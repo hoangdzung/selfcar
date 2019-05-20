@@ -10,12 +10,13 @@ import math
 from utils import euclide_distance
 from distance import distance_to_borders, distance_to_obstacles
 from virtual_map import Map 
-from controller import get_steering_controller
+from controller import get_steering_controller, get_speed_controller
 
 import numpy as np 
 
 from obstacle import init_obstacle_from_pos
 steering_controller = get_steering_controller()
+speed_controller = get_speed_controller()
 
 ROAD_SCALE = 1.5
 
@@ -51,6 +52,7 @@ class Road():
             display.blit(self.textsurface, self.textsurface_loc)
 
     def clicked(self,display):
+        print(self.points)
         self.is_chosen = not self.is_chosen
         if self.is_chosen:
             self.color = (0,255,0)
@@ -61,7 +63,7 @@ class Road():
     def update(self):
         if self.type == 'intersection':
             self.count = (self.count+1)%self.time
-            self.textsurface = self.myfont.render(str(self.count), False, (0, 0, 0))
+            self.textsurface = self.myfont.render(str(6-self.count/10), False, (0, 0, 0))
             # self.draw(display)
             # 
             self.textsurface_loc = ((self.pts1[0]+self.pts3[0])/2,(self.pts1[1]+self.pts3[1])/2)
@@ -84,12 +86,13 @@ def rotate(origin, point, angle):
     return qx, qy
 
 class Car(pygame.sprite.Sprite):
-    def __init__(self, x, y, w, h, steering_controller, virtual_map, routes=None):
+    def __init__(self, x, y, w, h, steering_controller, speed_controller, virtual_map, routes=None):
         self.image = pygame.transform.scale(pygame.image.load("car.png"), (w,h))
         self.rect = self.image.get_rect()
         self.rect.left = x
         self.rect.top = y
         self.steering_controller = steering_controller
+        self.speed_controller = speed_controller
         # self.front_left = [x+w/2,y+h/2]
         # self.front_right = [x+w/2,y-h/2]
         # self.back_left = [x-w/2,y+h/2]
@@ -100,7 +103,7 @@ class Car(pygame.sprite.Sprite):
         self.routes = routes
         self.road_idx = 0
         self.virtual_map = virtual_map
-
+        self.speed=3
 
         # 
         self.distanceL = None 
@@ -213,22 +216,35 @@ class Car(pygame.sprite.Sprite):
         if self.distanceR45 is not None:
             pygame.draw.line(display, (255, 0, 0), self.front_right, self.impactR45)
 
+    def cal_speed(self):
+        
+        self.speed_controller.input['deviation'] = 100.0*self.distanceR /(self.distanceL+self.distanceR)
+        self.speed_controller.input['lightstatus'] = self.redlight_time
+        self.speed_controller.input['distance'] = min(100, self.redlight_distance)
+        self.speed_controller.compute()
+        # self.speed = min(self.speed, 3*self.speed_controller.output['speed']/100)
+        self.speed = 5*self.speed_controller.output['speed']/100
+        print(self.redlight_distance, self.speed)
+        # print(self.time2changeRedlight, self.distanceRedLight, self.speed
+
     def update(self, display):
         #
-        self.move_forward()
         self.compute_pos_sensors()
         if self.road_idx+1==len(self.routes):
             return False
         self.sensor_redlight()
         self.compute_distance()
+        # self.cal_speed()
         angle = self.cal_steering_angle()
         self.rotate(angle)
+        self.move_forward()
         self.draw(display)
         return True
     
     def cal_steering_angle(self):
-        print(self.distanceFL,self.distanceFR)
-        self.steering_controller.input['deviation'] = 100.0*self.distanceR45 /(self.distanceR45+self.distanceL45)
+        print(100.0*self.distanceR45 /(self.distanceR45+self.distanceL45))
+        self.steering_controller.input['deviation45'] = 100.0*self.distanceR45 /(self.distanceR45+self.distanceL45)
+        # self.steering_controller.input['deviation'] = 100.0*self.distanceR /(self.distanceR+self.distanceL)
         # self.steering_controller.input['deviation_back'] = 100.0*self.distanceBackR /(self.distanceBackL+self.distanceBackR)
         self.steering_controller.compute()
         # steering = math.radians(self.steering_controller.output['steering']-180)/900
@@ -238,7 +254,7 @@ class Car(pygame.sprite.Sprite):
         return steering
 
     def move_forward(self):
-        s = 3
+        s = self.speed
         curCenterX, curCenterY = self.rect.center
         newCenterX, newCenterY = int(curCenterX + s*math.cos(self.angle)), int(curCenterY - s*math.sin(self.angle))
         self.rect.center = (newCenterX, newCenterY)
@@ -264,6 +280,7 @@ class Car(pygame.sprite.Sprite):
     @staticmethod 
     def find_common_vertex(road1, road2):
         common_vertex = [pts for pts in road1.points if pts in road2.points ]
+        print(len(common_vertex))
         return common_vertex
 
     def sensor_redlight(self):
@@ -301,54 +318,55 @@ def main():
 
     
     # road1 = Road([0,0], [50,0], [50, 200] , [0,200])
-    # road2 = Road([0,200], [50,200], [50,250], [0,250], "intersection", 20)
+    # road2 = Road([0,200], [50,200], [50,250], [0,250], "intersection", TIME)
     # road3 = Road([50,200], [300, 200],[300,250], [50,250])
-    # road4 = Road([300,200], [350, 200], [350,250], [300,250], "intersection", 20)
+    # road4 = Road([300,200], [350, 200], [350,250], [300,250], "intersection", TIME)
     # road5 = Road([300,200], [350,200], [50, 0], [50,50])
     # roads = [road1, road2, road3, road4, road5]
+    TIME=100
     roads = [
-        Road([36,74], [72,74], [72, 104] , [36,104], "intersection", 20),
+        Road([36,74], [72,74], [72, 104] , [36,104], "intersection", TIME),
         Road([72,74], [172, 74], [172, 104] , [72,104]),
-        Road([172,74], [203, 74], [203, 104] , [172,104], "intersection", 20),
+        Road([172,74], [203, 74], [203, 104] , [172,104], "intersection", TIME),
         Road([203,74], [524, 74], [524, 104] , [203,104]),
-        Road([524,74], [563, 74], [563, 104] , [524,104], "intersection", 20),
+        Road([524,74], [563, 74], [563, 104] , [524,104], "intersection", TIME),
         Road([563,74], [713, 74], [713, 104] , [563,104]),
-        Road([713,74], [748, 74], [748, 104] , [713,104], "intersection", 20),
+        Road([713,74], [748, 74], [748, 104] , [713,104], "intersection", TIME),
         Road([36,104], [72, 104], [72, 193] , [36,193]),
-        Road([36,193], [72, 193], [72, 225] , [36,225], "intersection", 20),
+        Road([36,193], [72, 193], [72, 225] , [36,225], "intersection", TIME),
         Road([72,193], [172, 193], [172, 225] , [72,225]),
         Road([172,104], [203, 104], [203, 193] , [172,193]),
-        Road([172,193], [203, 193], [203, 225] , [172,225], "intersection", 20),
+        Road([172,193], [203, 193], [203, 225] , [172,225], "intersection", TIME),
         Road([203,193], [293, 192], [289, 227] , [203,225]),
         Road([293,192], [364, 205], [358, 238] , [289,227]),
-        Road([364,205], [401, 212], [397, 246] , [358,238], "intersection", 20),
+        Road([364,205], [401, 212], [397, 246] , [358,238], "intersection", TIME),
         Road([401,212], [481, 224], [460, 258] , [397,246]),
-        Road([481,224], [506, 251], [474, 269] , [460,258], "intersection", 20),
+        Road([481,224], [506, 251], [474, 269] , [460,258], "intersection", TIME),
         Road([506,251], [550, 303], [528, 323] , [474,269]),
-        Road([550,303], [574, 328], [543, 343] , [528,323], "intersection", 20),
+        Road([550,303], [574, 328], [543, 343] , [528,323], "intersection", TIME),
         Road([481,224], [506, 251], [565, 195] , [530,178]),
         Road([530,178], [565, 195], [563,104], [524, 104]),
         Road([550,303], [574, 328], [636,270], [615, 246]),
         Road([636,270], [615, 246], [713,243], [713, 269]),
-        Road([713,243], [748, 243], [748,269], [713, 269], "intersection", 20),
+        Road([713,243], [748, 243], [748,269], [713, 269], "intersection", TIME),
         Road([713,104], [748, 104], [748,243], [713, 243]),
         Road([713,269], [748, 269], [748,500], [713, 500]),
-        Road([713,500], [748, 500], [748,534], [713, 534], "intersection", 20),
+        Road([713,500], [748, 500], [748,534], [713, 534], "intersection", TIME),
         Road([580,500], [713, 500], [713,534], [580, 534]),
-        Road([545,500], [580, 500], [580,534], [545, 534], "intersection", 20),
+        Road([545,500], [580, 500], [580,534], [545, 534], "intersection", TIME),
         Road([543,343], [574, 328], [580,500], [545, 500]),
         Road([348,500], [545, 500], [545,534], [348, 534]),
-        Road([312,500], [348, 500], [348,534], [312, 534], "intersection", 20),
+        Road([312,500], [348, 500], [348,534], [312, 534], "intersection", TIME),
         Road([200,500], [312, 500], [312,534], [200, 534]),
-        Road([172,500], [200, 500], [200,534], [172, 534], "intersection", 20),
+        Road([172,500], [200, 500], [200,534], [172, 534], "intersection", TIME),
         Road([74,500], [172, 500], [172,534], [74, 534]),
-        Road([42,500], [74, 500], [74,534], [42, 534], "intersection", 20),
+        Road([42,500], [74, 500], [74,534], [42, 534], "intersection", TIME),
         Road([36,225], [72, 225], [74,500], [42, 500]),
         Road([172,225], [203, 225], [203,363], [172, 363]),
-        Road([172,363], [203, 363], [200,390], [172, 390], "intersection", 20),
+        Road([172,363], [203, 363], [200,390], [172, 390], "intersection", TIME),
         Road([172,390], [203, 390], [200,500], [172, 500]),
         Road([203,363], [310, 357], [313,389], [200, 390]),
-        Road([310,357], [345, 359], [346,386], [313, 389], "intersection", 20),
+        Road([310,357], [345, 359], [346,386], [313, 389], "intersection", TIME),
         Road([313,389], [346, 386], [348,500], [312, 500]),
         Road([358,238], [397, 246], [345, 359], [310,357]),
     ]
@@ -400,7 +418,7 @@ def main():
                 sys.exit()
             elif event.type == MOUSEBUTTONUP:
                 mousex, mousey = event.pos
-                car = Car(mousex,mousey,10,5, steering_controller,virtual_map ,routes)
+                car = Car(mousex,mousey,20,10, steering_controller, speed_controller,virtual_map ,routes)
                 car.draw(DISPLAY)
                 car_pick=True
         if car_pick:
